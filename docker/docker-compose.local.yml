@@ -1,0 +1,134 @@
+version: "3.8"
+
+services:
+  pg:
+    image: postgres:15
+    container_name: ${COMPOSE_PROJECT_NAME}-postgres
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - ENV=${ENV}
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+    volumes:
+      - ${DOCKER_DATA_PATH}/${ENV}/pg:/var/lib/postgresql/data:rw
+    ports:
+      - "5477:5432"
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7
+    container_name: ${COMPOSE_PROJECT_NAME}-redis
+    restart: always
+    ports:
+      - "6377:6379"
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: ${COMPOSE_PROJECT_NAME}-rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${DATABASE_USER}
+      RABBITMQ_DEFAULT_PASS: ${DATABASE_PASSWORD}
+    ports:
+      - "5677:5672"
+      - "15677:15672"
+    volumes:
+      - ${DOCKER_DATA_PATH}/${ENV}/rmqdata:/var/lib/rabbitmq
+    networks:
+      - app-network
+
+  django:
+    build:
+      context: ../
+      dockerfile: docker/localdev/server.Dockerfile
+      args:
+        ENV: "${ENV}"
+    image: ${COMPOSE_PROJECT_NAME}-django
+    container_name: ${COMPOSE_PROJECT_NAME}-django
+    restart: always
+    depends_on:
+      - pg
+      - redis
+      - rabbitmq
+      - celery
+    env_file:
+      - .env
+    environment:
+      - ENV=${ENV}
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_PORT=${DATABASE_PORT}
+    volumes:
+      - ../:/home/code
+      - ${DOCKER_DATA_PATH}/${ENV}/static:/data/static
+      - ${DOCKER_DATA_PATH}/${ENV}/media:/data/media
+    # command: sh -c "make dockerlocal && python src/manage.py migrate && python src/manage.py runserver 0.0.0.0:8888"
+    working_dir: /home/code/src
+    entrypoint: ["/home/code/docker/entrypoint.sh"]
+    command: ["uvicorn", "faproject.main:app", "--host", "0.0.0.0", "--port", "8888", "--workers", "4"]
+    # uvicorn faproject.main:app --host 0.0.0.0 --port 8888 --workers 4
+    ports:
+      - 8888:8888
+    networks:
+      - app-network
+
+  celery:
+    build:
+      context: ../
+      dockerfile: docker/localdev/server.Dockerfile
+      args:
+        ENV: "${ENV}"
+    image: ${COMPOSE_PROJECT_NAME}-django
+    container_name: ${COMPOSE_PROJECT_NAME}-celery
+    restart: always
+    depends_on:
+      - pg
+      - redis
+      - rabbitmq
+    env_file:
+      - .env
+    environment:
+      - ENV=${ENV}
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_PORT=${DATABASE_PORT}
+    working_dir: /home/code/src
+    entrypoint: ["/home/code/docker/entrypoint.sh"]
+    command: ["celery", "-A", "djproject", "worker", "--loglevel=info", "-B"]
+    # command: "/usr/local/bin/celery -A project_src worker -B -E -s /home/celerybeat-schedule -l info -c 1 -n worker-gh@%%h"
+    volumes:
+      - ../:/home/code
+      - ${DOCKER_DATA_PATH}/${ENV}/static:/data/static
+      - ${DOCKER_DATA_PATH}/${ENV}/media:/data/media
+    networks:
+      - app-network
+
+  nginx:
+    build:
+      context: ../
+      dockerfile: docker/localdev/nginx.Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}-nginx
+    restart: always
+    depends_on:
+      - django
+    volumes:
+      - ${DOCKER_DATA_PATH}/${ENV}/static:/usr/share/nginx/html/static
+      - ${DOCKER_DATA_PATH}/${ENV}/media:/usr/share/nginx/html/media
+    ports:
+      - "88:80"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
