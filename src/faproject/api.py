@@ -1,15 +1,16 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-import jwt
+from asgiref.sync import sync_to_async
 from bstore.models import Block, Provider
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.sessions.models import Session
 from django.core.paginator import Paginator
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from jose import jwt
 from starlette.responses import JSONResponse
 
 from .dependencies import ALGORITHM, SECRET_KEY, get_current_user
@@ -53,22 +54,61 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.get("/token/session", response_model=dict)
-async def get_token_from_session(request):
+async def get_token_from_session(sessionid: str = Cookie(None)):
     """Retrieve JWT token for authenticated Django users"""
-    session_user = request.cookies.get("sessionid")  # Django session ID
-    if not session_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    if not sessionid:
+        raise HTTPException(status_code=401, detail="No session ID provided")
+
+    from django.contrib.auth.models import User
+    from django.contrib.sessions.models import Session
 
     try:
-        session = Session.objects.get(session_key=session_user)
+        session = await sync_to_async(Session.objects.get)(session_key=sessionid)
         user_id = session.get_decoded().get('_auth_user_id')
-        user = User.objects.get(pk=user_id)
+        user = await sync_to_async(User.objects.get)(pk=user_id)
     except (Session.DoesNotExist, User.DoesNotExist):
         raise HTTPException(status_code=401, detail="Invalid session")
 
     # Create JWT token for authenticated user
     access_token = create_access_token(data={"sub": user.username})
-    return JSONResponse({"access_token": access_token, "token_type": "bearer"})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@sync_to_async
+def get_blocks(currency=None, provider=None):
+    block_qs = Block.objects.all().select_related('currency', 'provider')
+
+    if currency:
+        block_qs = block_qs.filter(currency__name=currency)
+    if provider:
+        block_qs = block_qs.filter(provider__name=provider)
+
+    return block_qs
+
+
+@sync_to_async
+def get_paginated_blocks(currency, provider, page, page_size):
+    block_qs = Block.objects.all().select_related('currency', 'provider')
+
+    if currency:
+        block_qs = block_qs.filter(currency__name=currency)
+    if provider:
+        block_qs = block_qs.filter(provider__name=provider)
+
+    paginator = Paginator(block_qs, page_size)
+    page_obj = paginator.get_page(page)
+    results = [
+        BlockResponse(
+            id=block.id,
+            currency_name=block.currency.name,
+            provider_name=block.provider.name,
+            block_number=block.block_number,
+            block_created_at=block.block_created_at,
+            created_at=block.created_at,
+        )
+        for block in page_obj.object_list
+    ]
+    return paginator.count, results
 
 
 @router.get("/blocks/", response_model=BlockList)
@@ -79,38 +119,21 @@ async def list_blocks(
     page_size: int = Query(10, gt=0, le=100),
     current_user: User = Depends(get_current_user),
 ):
-    query = Block.objects.all().select_related('currency', 'provider')
+    total, results = await get_paginated_blocks(currency, provider, page, page_size)
 
-    if currency:
-        query = query.filter(currency__name=currency)
-    if provider:
-        query = query.filter(provider__name=provider)
+    return BlockList(total=total, page=page, page_size=page_size, results=results)
 
-    paginator = Paginator(query, page_size)
-    page_obj = paginator.get_page(page)
 
-    results = [
-        BlockResponse(
-            id=block.id,
-            currency_name=block.currency.name,
-            provider_name=block.provider.name,
-            block_number=block.block_number,
-            block_created_at=block.block_created_at,
-            stored_at=block.stored_at,
-        )
-        for block in page_obj.object_list
-    ]
-
-    return BlockList(
-        total=paginator.count, page=page, page_size=page_size, results=results
+@sync_to_async
+def get_block_by_id_sync(block_id):
+    return (
+        Block.objects.filter(id=block_id).select_related('currency', 'provider').first()
     )
 
 
 @router.get("/blocks/{block_id}", response_model=BlockResponse)
 async def get_block_by_id(block_id, current_user: User = Depends(get_current_user)):
-    block = (
-        Block.objects.filter(id=block_id).select_related('currency', 'provider').first()
-    )
+    block = await get_block_by_id_sync(block_id)
     if not block:
         raise HTTPException(status_code=404, detail="Block not found")
 
@@ -120,7 +143,7 @@ async def get_block_by_id(block_id, current_user: User = Depends(get_current_use
         provider_name=block.provider.name,
         block_number=block.block_number,
         block_created_at=block.block_created_at,
-        stored_at=block.stored_at,
+        created_at=block.created_at,
     )
 
 

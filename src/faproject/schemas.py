@@ -29,7 +29,7 @@ class BlockBase(BaseModel):
     provider_name: str
     block_number: int
     block_created_at: Optional[datetime]
-    stored_at: datetime
+    created_at: datetime
 
     class Config:
         from_attributes = True
