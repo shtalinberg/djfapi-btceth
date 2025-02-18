@@ -10,7 +10,9 @@ MEDIA_ROOT = "/data/media/"
 STATIC_ROOT = "/data/static/"
 
 # For RabbitMQ
-CELERY_BROKER_URL = "amqp://os.environ['DATABASE_USER']:os.environ['DATABASE_PASSWORD']@rabbitmq:5672/"
+CELERY_BROKER_URL = (
+    "amqp://os.environ['DATABASE_USER']:os.environ['DATABASE_PASSWORD']@rabbitmq:5672/"
+)
 REDIS_URL = f"redis://redis:6377"
 
 DATABASES = {

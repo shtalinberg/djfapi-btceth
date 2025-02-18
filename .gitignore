@@ -30,6 +30,7 @@ logs/
 allstatic/
 media/
 src/djproject/settings/local.py
+src/djapps/bstore/tests/
 
 # Docker stuff:
 docker/.env

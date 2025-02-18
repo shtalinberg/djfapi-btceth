@@ -1,0 +1,31 @@
+<div class="modal-header">
+  <h5 class="modal-title">Block Details</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body">
+  <dl class="row">
+    <dt class="col-sm-4">Currency</dt>
+    <dd class="col-sm-8">
+      {{ block.currency_name }}
+    </dd>
+    <dt class="col-sm-4">Block Number</dt>
+    <dd class="col-sm-8">
+      {{ block.block_number }}
+    </dd>
+    <dt class="col-sm-4">Provider</dt>
+    <dd class="col-sm-8">
+      {{ block.provider_name }}
+    </dd>
+    <dt class="col-sm-4">Created At</dt>
+    <dd class="col-sm-8">
+      {{ block.block_created_at|date:"Y-m-d H:i:s" }}
+    </dd>
+    <dt class="col-sm-4">Stored At</dt>
+    <dd class="col-sm-8">
+      {{ block.stored_at|date:"Y-m-d H:i:s" }}
+    </dd>
+  </dl>
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+</div>

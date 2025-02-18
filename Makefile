@@ -13,6 +13,9 @@ _local_requirements:
 	@echo "Installing local development requirements"
 	@pip install -r requirements/local.pip -U
 
+stats:
+	@pip list --outdated
+
 db: migrate
 
 migrate:

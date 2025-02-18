@@ -23,23 +23,25 @@ Project Folder Structure
 ========================
 
 repo_root/                     # Project root directory
-│── docker/                    # Docker-related files
-│   ├── django.Dockerfile      # Dockerfile for Django (ASGI + Uvicorn)
-│   ├── celery.Dockerfile      # Dockerfile for Celery worker
-│   ├── nginx.Dockerfile       # Dockerfile for Nginx reverse proxy
-│   ├── entrypoint.sh          # Entry script for container initialization
-│   ├── nginx.conf             # Nginx configuration file
-│── requirements/              # Dependency management
-│   ├── base.pip               # Base dependencies
-│   ├── local.pip              # Local development dependencies
-│   ├── code-checks.pip        # Linters and code formatting dependencies
-│── src/                       # Main source code directory
-│   ├── djapps/                # Django applications
-│   │   ├── app1/              # Example Django app
-│   │   ├── app2/              # Another Django app
-│   ├── faproject/             # FastAPI application
-│   ├── project/               # Django project configuration (settings, URLs, etc.)
 │── allstatic/                 # Collected static files
 │── media/                     # Uploaded media files
-│── .env                       # Environment variables (not committed to VCS)
-│── docker-compose.local.yml   # Docker Compose file for local development
+│── docker/                    # Docker-related files
+│   ├── localdev/server.Dockerfile      # Dockerfile for Django (ASGI + Uvicorn) and Celery worker with Beat
+│   ├── localdev/nginx.Dockerfile       # Dockerfile for Nginx reverse proxy
+│   ├── localdev/nginx.conf             # Nginx configuration file
+│   │── .env                       # Environment variables (not committed to VCS)
+│   │── docker-compose.local.yml   # Docker Compose file for local development
+│   ├── entrypoint.sh          # Entry script for container initialization
+│── requirements/              # Dependency management
+│   ├── base.pip               # Base dependencies
+│   ├── code-checks.pip        # Linters and code formatting dependencies
+│   ├── local.pip              # Local development dependencies
+│── src/                       # Main source code directory
+│   ├── djapps/                # All our Django applications
+│   │   ├── bstore/                 # bstore app
+│   ├── djproject/             # Django project configuration (settings, URLs, etc.)
+│   ├── faproject/             # FastAPI application
+│   ├── manage.py
+│── .gitignore
+│── Makefile
+│── README.md

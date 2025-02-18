@@ -1,0 +1,61 @@
+<div class="table-responsive">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Currency</th>
+        <th>Block Number</th>
+        <th>Provider</th>
+        <th>Created At</th>
+        <th>Stored At</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for block in blocks.results %}
+        <tr>
+          <td>{{ block.currency_name }}</td>
+          <td>{{ block.block_number }}</td>
+          <td>{{ block.provider_name }}</td>
+          <td>{{ block.block_created_at|date:"Y-m-d H:i:s" }}</td>
+          <td>{{ block.stored_at|date:"Y-m-d H:i:s" }}</td>
+          <td>
+            <button class="btn btn-sm btn-info"
+                    hx-get="{% url 'block_detail' block.id %}"
+                    hx-target="#blockModal .modal-content">View</button>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <nav>
+    <ul class="pagination">
+      {% if blocks.page > 1 %}
+        <li class="page-item">
+          <a class="page-link"
+             href="#"
+             hx-get="{% url 'bstore:blocks_partial' %}?page={{ blocks.page|add:'-1' }}"
+             hx-target="#blocks-table">Previous</a>
+        </li>
+      {% endif %}
+      <li class="page-item disabled">
+        <span class="page-link">Page {{ blocks.page }} of {{ blocks.total_pages }}</span>
+      </li>
+      {% if blocks.page < blocks.total_pages %}
+        <li class="page-item">
+          <a class="page-link"
+             href="#"
+             hx-get="{% url 'bstore:blocks_partial' %}?page={{ blocks.page|add:'1' }}"
+             hx-target="#blocks-table">Next</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+</div>
+<!-- Modal for block details -->
+<div class="modal fade" id="blockModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- Content loaded via HTMX -->
+    </div>
+  </div>
+</div>
