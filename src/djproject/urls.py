@@ -4,7 +4,9 @@ from django.urls import include, path
 from django.views.generic import TemplateView
 
 urlpatterns = [
+    path("accounts/", include("django.contrib.auth.urls")),
     path("admzone/", admin.site.urls),
+    path("bstore/", include("bstore.urls", namespace="bstore")),
 ]
 if settings.DEBUG:
     if "debug_toolbar" in settings.INSTALLED_APPS:

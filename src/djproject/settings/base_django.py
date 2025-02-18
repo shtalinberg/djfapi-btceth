@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "bstore",
 ]
 
 MIDDLEWARE = [
@@ -90,6 +91,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "djproject.wsgi.application"
 
+FASTAPI_SETTINGS = {
+    "API_V1_PREFIX": "/api",
+    "PROJECT_NAME": "BStore",
+    "DEBUG": DEBUG,
+}
+
+API_BASE_URL = "http://127.0.0.1:8000/api"
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
